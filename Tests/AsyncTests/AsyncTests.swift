@@ -29,21 +29,21 @@ final class AsyncTests: XCTestCase {
     func testAsyncOperationTasksTest() throws {
         let expectation = expectation(description: "")
         let queue = DispatchQueue(label: "addNumber")
-        Async.task { operation in
+        Async.Task { operation in
             NSLog("async----开始----thread----%@", Thread.current)
             let number = 10
             
             let firstResult = operation.await(self.asyncAdd1Task(number: number, on: queue))
-            guard let number = firstResult.result as? Int, number == 11 else { return }
+            guard case .success(let number) = firstResult, number == 11 else { return }
             
             let secondResult = operation.await(self.asyncAdd2Task(number: number, on: queue))
-            guard let number = secondResult.result as? Int else { return }
+            guard case .success(let number) = secondResult else { return }
             
             let thirdResult = operation.await(self.asyncAdd3Task(number: number, on: queue))
-            guard let number = thirdResult.result as? Int else { return }
+            guard case .success(let number) = thirdResult else { return }
             
             let fourResult = operation.await(self.asyncAdd4Task(number: number, on: queue))
-            guard let number = fourResult.result as? Int else { return }
+            guard case .success(let number) = fourResult else { return }
             
             print(number)
             
@@ -60,36 +60,47 @@ final class AsyncTests: XCTestCase {
             }
         
             let newNumber = 100
-            
+            let newNumber1: Float = 100
+
             let firstAsyncTask = self.asyncAdd5Task(number: newNumber)
-            let secondAsyncTask = self.asyncAdd6Task(number: newNumber)
+            let secondAsyncTask = self.asyncAdd6Task(number: newNumber1)
             
             let awaitResult = operation.await([firstAsyncTask, secondAsyncTask])
                         
-            let tasksResults = awaitResult.result as? [AsyncResult]
+            let tasksResults = awaitResult
             
             // 获取全部Error
-            if let errors = tasksResults?.compactMap({ $0.error }) {
+            if let errors = tasksResults?.compactMap({
+                if case .failure(_) = $0 {
+                    return $0
+                }
+                return nil
+            }) {
                 print(errors)
             }
             // 获取单个result
-            if let fResult = firstAsyncTask.result?.result {
+            if let fResult = firstAsyncTask.value {
                 print(fResult)
             }
             
-            if let sResult = firstAsyncTask.result?.result {
+            if let sResult = firstAsyncTask.value {
                 print(sResult)
             }
 
             // 获取单个 Error
-            if let fError = firstAsyncTask.result?.error {
+            if let fError = firstAsyncTask.value {
                 print(fError)
             }
-            if let sError = secondAsyncTask.result?.error {
+            if let sError = secondAsyncTask.value {
                 print(sError)
             }
             // 获取全部result
-            if let results = tasksResults?.compactMap({ $0.result }) {
+            if let results = tasksResults?.compactMap({
+                if case .success(_) = $0 {
+                    return $0
+                }
+                return nil
+            }) {
                 print(results)
             }
             
@@ -105,62 +116,62 @@ final class AsyncTests: XCTestCase {
         }
     }
     
-    func asyncAdd1Task(number: Int, on queue: DispatchQueue) -> AsyncTask {
+    func asyncAdd1Task(number: Int, on queue: DispatchQueue) -> AsyncTask<Int, any Error> {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+1) {
                 let newNumber = number + 1
                 NSLog("asyncAdd1--延迟1s--%d----thread----%@", newNumber, Thread.current)
-                resultClosure(AsyncResult.success(result: newNumber))
+                resultClosure(.success(newNumber))
             }
         }
     }
     
-    func asyncAdd2Task(number: Int, on queue: DispatchQueue) -> AsyncTask {
+    func asyncAdd2Task(number: Int, on queue: DispatchQueue) -> AsyncTask<Int, any Error> {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+2) {
                 let newNumber = number + 2
                 NSLog("asyncAdd2--延迟2s--%d----thread----%@", newNumber, Thread.current)
-                resultClosure(AsyncResult.success(result: newNumber))
+                resultClosure(.success(newNumber))
             }
         }
     }
     
-    func asyncAdd3Task(number: Int, on queue: DispatchQueue) -> AsyncTask {
+    func asyncAdd3Task(number: Int, on queue: DispatchQueue) -> AsyncTask<Int, any Error> {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+0.5) {
                 let newNumber = number + 3
                 NSLog("asyncAdd3--延迟0.5--%d----thread----%@", newNumber, Thread.current)
-                resultClosure(AsyncResult.success(result: newNumber))
+                resultClosure(.success(newNumber))
             }
         }
     }
     
-    func asyncAdd4Task(number: Int, on queue: DispatchQueue) -> AsyncTask {
+    func asyncAdd4Task(number: Int, on queue: DispatchQueue) -> AsyncTask<Int, any Error> {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+4) {
                 let newNumber = number + 4
                 NSLog("asyncAdd4--延迟4--%d----thread----%@", newNumber, Thread.current)
-                resultClosure(AsyncResult.success(result: newNumber))
+                resultClosure(.success(newNumber))
             }
         }
     }
     
-    func asyncAdd5Task(number: Int) -> AsyncTask {
+    func asyncAdd5Task(number: Int) -> AsyncTask<Int, any Error> {
         return AsyncTask { resultClosure in
             DispatchQueue.main.asyncAfter(deadline: .now()+5) {
                 let newNumber = number + 500
                 NSLog("asyncAdd5--延迟5s--%d----thread----%@", newNumber, Thread.current)
-                resultClosure(AsyncResult.success(result: newNumber))
+                resultClosure(.success(newNumber))
             }
         }
     }
     
-    func asyncAdd6Task(number: Int) -> AsyncTask {
+    func asyncAdd6Task(number: Float) -> AsyncTask<Float, any Error> {
         return AsyncTask { resultClosure in
             DispatchQueue.main.asyncAfter(deadline: .now()+6) {
                 let newNumber = number + 500
                 NSLog("asyncAdd6--延迟6s--%d----thread----%@", newNumber, Thread.current)
-                resultClosure(AsyncResult.success(result: newNumber))
+                resultClosure(.success(newNumber))
             }
         }
     }

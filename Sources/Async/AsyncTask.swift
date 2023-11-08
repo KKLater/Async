@@ -25,21 +25,49 @@
 
 import Foundation
 
+public protocol AsyncTaskType {
+    associatedtype Success
+    associatedtype Failure: Error
+    func action(closure: @escaping () -> Void)
+    var value: Success? { get }
+    var error: Failure? { get }
+}
 /// `AsyncTask`是一个任务包装类型，用于包装子任务
-public class AsyncTask {
+public class AsyncTask<Success, Failure>: AsyncTaskType where Failure : Error {
+    public var value: Success? {
+        switch result {
+        case .success(let success):
+            return success
+        case .failure(_):
+            return nil
+        case nil:
+            return nil
+        }
+    }
+    
+    public var error: Failure? {
+        switch result {
+        case .success(_):
+            return nil
+        case .failure(let failure):
+            return failure
+        case nil:
+            return nil
+        }
+    }
     fileprivate let id = UUID()
     
-    public init(responseClosure: @escaping (@escaping (AsyncResult) -> Void) -> Void) {
+    public init(responseClosure: @escaping (@escaping (Result<Success, Failure>) -> Void) -> Void) {
         self.responseClosure = responseClosure
     }
     
     // 异步结果数据回调
-    public var responseClosure: (@escaping (AsyncResult) -> Void) -> Void
-    
+    public var responseClosure: (@escaping (Result<Success, Failure>) -> Void) -> Void
+
     
     /// 子任务执行操作
     /// - Parameter closure: 执行结束回调
-    func action(closure: @escaping () -> Void) {
+    public func action(closure: @escaping () -> Void) {
         responseClosure { tempResult in
             self.result = tempResult
             closure()
@@ -47,9 +75,11 @@ public class AsyncTask {
     }
     
     /// 任务执行结束回调后，可以获取到对应 `result`
-    /// 成功时，可以使用其 `result`
-    /// 失败时，可以使用其 `error`
-    var result: AsyncResult?
+    ///
+    /// - Note:
+    /// 1. 所有 `await` 的 `AsyncTask` 任务必须有结果 `Result`。`Result` 的 `Success` 标识任务执行成功结果，`Failure` 标识任务执行失败，并标识错误。
+    /// 2. 必须在 `await` 之后才可以使用 `AsyncTask` 任务的 `Result` 。如果结果 `Result` 为空，则任务还没有执行（没有添加到 `await` 执行）。
+    var result: Result<Success, Failure>?
 }
 extension AsyncTask: Equatable {
     public static func == (lhs: AsyncTask, rhs: AsyncTask) -> Bool {

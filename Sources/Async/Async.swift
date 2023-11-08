@@ -30,13 +30,17 @@ import Foundation
 internal var asyncWaitQueues = [String: AsyncOperation]()
 
 /// `Async` 用于启动一个同步线程 `AsyncOperation`，做线程调度。
+/// - Note:
+/// 线程调度的任务需要注意：
+/// 1. 所有 `await` 的 `AsyncTask` 任务必须有结果 `Result`。`Result` 的 `Success` 标识任务执行成功结果，`Failure` 标识任务执行失败，并标识错误。
+/// 2. 必须在 `await` 之后才可以使用 `AsyncTask` 任务的 `Result` 。如果结果 `Result` 为空，则任务还没有执行（没有添加到 `await` 执行）。
 public struct Async {
     
     /// 启动一个同步线程调度线程管理
     /// - Parameter operationClosure: 线程操作事件
     /// - Returns: 同步线程调度
     @discardableResult
-    public static func task(operationClosure: @escaping (_ operation: AsyncOperation) -> Void) -> AsyncOperation {
+    public static func Task(operationClosure: @escaping (_ operation: AsyncOperation) -> Void) -> AsyncOperation {
         let operation = AsyncOperation.task(operationClosure: operationClosure)
         return operation
     }
