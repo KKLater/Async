@@ -157,7 +157,7 @@ extension AsyncOperation {
     /// - Parameter response: 等待事件包装
     /// - Returns: 等待事件响应结果
     @discardableResult
-    func await<Success, Failure>(_ task: AsyncTask<Success, Failure>) -> Result<Success, Failure>? where Failure: Error {
+    public func await<Success, Failure>(_ task: AsyncTask<Success, Failure>) -> Result<Success, Failure>? where Failure: Error {
         return self.await(task: task)
     }
 
