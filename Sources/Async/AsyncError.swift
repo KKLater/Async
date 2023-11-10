@@ -24,9 +24,18 @@
 
 import Foundation
 
-/// `AsyncError` 是一个 `Async` 返回的错误类型。用于抛出 `Async` 执行过程中的错误。
+/// `AsyncError` is an error type returned by `Async`. It is used to throw errors that occur during the execution of `Async`.
 public enum AsyncError: Error {
     
-    // result 结果错误
+    /// Result error
     case resultError
+}
+
+extension AsyncError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .resultError:
+            return "The task result is wrong."
+        }
+    }
 }
