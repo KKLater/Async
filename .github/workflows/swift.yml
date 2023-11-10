@@ -32,10 +32,10 @@ jobs:
       matrix:
         include:
           - xcode: "Xcode_15.0"
-            runsOn: macOS-14
+            runsOn: firebreak
             name: "macOS 13, SPM 5.9.0 Test"
           - xcode: "Xcode_14.3.1"
-            runsOn: macOS-13
+            runsOn: firebreak
             name: "macOS 13, SPM 5.8.0 Test"
           - xcode: "Xcode_14.2"
             runsOn: macOS-12
@@ -48,5 +48,7 @@ jobs:
             name: "macOS 12, SPM 5.7.0 Test"
     steps:
       - uses: actions/checkout@v4
+      - name: Install Firewalk
+        run: brew install alamofire/alamofire/firewalk || brew upgrade alamofire/alamofire/firewalk xcbeautify && firewalk &
       - name: Test SPM
         run: swift test -c debug
