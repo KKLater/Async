@@ -1,0 +1,127 @@
+name: "Async CI"
+
+on:
+  push:
+    branches:
+      - master
+      - hotfix
+    paths:
+      - ".github/workflows/**"
+      - "Package.swift"
+      - "Source/**"
+      - "Tests/**"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "Package.swift"
+      - "Source/**"
+      - "Tests/**"
+
+concurrency:
+  group: ${{ github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  SPM:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runsOn }}
+    env:
+      DEVELOPER_DIR: "/Applications/${{ matrix.xcode }}.app/Contents/Developer"
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - xcode: "Xcode_15.0"
+            runsOn: firebreak
+            name: "macOS 13, SPM 5.9.0 Test"
+          - xcode: "Xcode_14.3.1"
+            runsOn: firebreak
+            name: "macOS 13, SPM 5.8.0 Test"
+          - xcode: "Xcode_14.2"
+            runsOn: macOS-12
+            name: "macOS 12, SPM 5.7.2 Test"
+          - xcode: "Xcode_14.1"
+            runsOn: macOS-12
+            name: "macOS 12, SPM 5.7.1 Test"
+          - xcode: "Xcode_14.0.1"
+            runsOn: macOS-12
+            name: "macOS 12, SPM 5.7.0 Test"
+          - xcode: "Xcode_13.4.1"
+            runsOn: macOS-12
+            name: "macOS 12, SPM 5.6.1 Test"
+          - xcode: "Xcode_13.3.1"
+            runsOn: macOS-12
+            name: "macOS 12, SPM 5.6.0 Test"
+          - xcode: "Xcode_13.2.1"
+            runsOn: macOS-11
+            name: "macOS 11, SPM 5.5.2 Test"
+          - xcode: "Xcode_13.1"
+            runsOn: macOS-11
+            name: "macOS 11, SPM 5.5.1 Test"
+          - xcode: "Xcode_13.0"
+            runsOn: macOS-11
+            name: "macOS 11, SPM 5.5.0 Test"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test SPM
+        run: swift test -c debug
+  Linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: swift:5.8-focal
+          - image: swift:5.8-jammy
+          - image: swift:5.8-centos7
+          - image: swift:5.8-amazonlinux2
+          - image: swift:5.8-rhel-ubi9
+          - image: swift:5.9-focal
+          - image: swift:5.9-jammy
+          - image: swift:5.9-centos7
+          - image: swift:5.9-amazonlinux2
+          - image: swift:5.9-rhel-ubi9
+          - image: swiftlang/swift:nightly-focal
+          - image: swiftlang/swift:nightly-jammy
+          - image: swiftlang/swift:nightly-amazonlinux2
+    container:
+      image: ${{ matrix.image }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+      - name: ${{ matrix.image }}
+        run: swift build --build-tests -c debug
+  Android:
+    name: Android
+    uses: hggz/swift-android-sdk/.github/workflows/sdks.yml@ci
+    strategy:
+      fail-fast: false
+    with:
+      target-repo: ${{ github.repository }}
+      checkout-hash: ${{ github.sha }}
+  Windows:
+    name: ${{ matrix.name }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: swift-5.8-release
+            tag: 5.8-RELEASE
+            name: Windows Swift 5.8
+          - branch: swift-5.9-release
+            tag: 5.9-RELEASE
+            name: Windows Swift 5.9
+    steps:
+      - name: Setup
+        uses: compnerd/gha-setup-swift@main
+        with:
+          branch: ${{ matrix.branch }}
+          tag: ${{ matrix.tag }}
+      - name: Clone
+        uses: actions/checkout@v4
+      - name: SPM ${{ matrix.name }}
+        run: |
+          swift build --build-tests -c debug -Xlinker /INCREMENTAL:NO -v
