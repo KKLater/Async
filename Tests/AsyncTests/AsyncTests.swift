@@ -31,10 +31,10 @@ final class AsyncTests: XCTestCase {
         let expectation = expectation(description: "")
         let queue = DispatchQueue(label: "addNumber")
         Async.Task { operation in
-            NSLog("async----开始----thread----%@", Thread.current)
+            NSLog("async----start----thread----%@", Thread.current)
             let number = 10
             let firstTask = self.asyncAdd1Task(number: number, on: queue)
-            let firstResult = operation.await(firstTask)
+            _ = operation.await(firstTask)
             
             guard let number = firstTask.value, number == 11 else { return }
             
@@ -107,7 +107,7 @@ final class AsyncTests: XCTestCase {
             }
             
             operation.await { responseClosure in
-                NSLog("async----结束----thread----%@", Thread.current)
+                NSLog("async----end----thread----%@", Thread.current)
                 expectation.fulfill()
             }
         }
@@ -122,7 +122,7 @@ final class AsyncTests: XCTestCase {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+1) {
                 let newNumber = number + 1
-                NSLog("asyncAdd1--延迟1s--%d----thread----%@", newNumber, Thread.current)
+                NSLog("asyncAdd1--delay 1s--%d----thread----%@", newNumber, Thread.current)
                 resultClosure(.success(newNumber))
             }
         }
@@ -132,7 +132,7 @@ final class AsyncTests: XCTestCase {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+2) {
                 let newNumber = number + 2
-                NSLog("asyncAdd2--延迟2s--%d----thread----%@", newNumber, Thread.current)
+                NSLog("asyncAdd2-- delay 2s--%d----thread----%@", newNumber, Thread.current)
                 resultClosure(.success(newNumber))
             }
         }
@@ -142,7 +142,7 @@ final class AsyncTests: XCTestCase {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+0.5) {
                 let newNumber = number + 3
-                NSLog("asyncAdd3--延迟0.5--%d----thread----%@", newNumber, Thread.current)
+                NSLog("asyncAdd3--delay 0.5--%d----thread----%@", newNumber, Thread.current)
                 resultClosure(.success(newNumber))
             }
         }
@@ -152,7 +152,7 @@ final class AsyncTests: XCTestCase {
         return AsyncTask { resultClosure in
             queue.asyncAfter(deadline: .now()+4) {
                 let newNumber = number + 4
-                NSLog("asyncAdd4--延迟4--%d----thread----%@", newNumber, Thread.current)
+                NSLog("asyncAdd4--delay 4s--%d----thread----%@", newNumber, Thread.current)
                 resultClosure(.success(newNumber))
             }
         }
@@ -162,7 +162,7 @@ final class AsyncTests: XCTestCase {
         return AsyncTask { resultClosure in
             DispatchQueue.main.asyncAfter(deadline: .now()+5) {
                 let newNumber = number + 500
-                NSLog("asyncAdd5--延迟5s--%d----thread----%@", newNumber, Thread.current)
+                NSLog("asyncAdd5--delay 5s--%d----thread----%@", newNumber, Thread.current)
                 resultClosure(.success(newNumber))
             }
         }
@@ -172,7 +172,7 @@ final class AsyncTests: XCTestCase {
         return AsyncTask { resultClosure in
             DispatchQueue.main.asyncAfter(deadline: .now()+6) {
                 let newNumber = number + 500
-                NSLog("asyncAdd6--延迟6s--%d----thread----%@", newNumber, Thread.current)
+                NSLog("asyncAdd6--delay 6s--%d----thread----%@", newNumber, Thread.current)
                 resultClosure(.success(newNumber))
             }
         }
