@@ -57,7 +57,7 @@ Async.Task { operation in
 }
 ```
 
-### ## [Installation](https://github.com/KKLater/Async#installation)
+### [Installation](https://github.com/KKLater/Async#installation)
 
 ### [Swift Package Manager](https://github.com/KKLater/Async#swift-package-manager)
 
@@ -75,7 +75,7 @@ dependencies: [
 
 
 
-## ##[License](https://github.com/KKLater/Async#license)
+## [License](https://github.com/KKLater/Async#license)
 
 Async is released under the MIT license. [See LICENSE](https://github.com/KKLater/Async/blob/main/LICENSE) for details.
 
