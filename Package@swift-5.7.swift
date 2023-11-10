@@ -15,6 +15,10 @@ let package = Package(
         .library(
             name: "Async",
             targets: ["Async"]),
+        .library(
+            name: "AsyncKit",
+            type: .static,
+            targets: ["Async"]),
     ],
     targets: [
         .target(
