@@ -177,49 +177,4 @@ final class AsyncTests: XCTestCase {
             }
         }
     }
-    
-    func test() {
-        Async.Task { operation in
-            let task1 = self.testTask1()
-            let task2 = self.testTask2()
-            let task3 = self.testTask3()
-            
-            let _ = operation.await([task1, task2, task3])
-            if let value1 = task1.value {
-                print(value1) // 5
-            }
-               
-            if let value2 = task2.value {
-                print(value2) // 10
-            }
-            
-            if let value3 = task3.value {
-                print(value3) // no print
-            }
-            
-            
-            if let error = task3.error {
-                print(error) // throw the error of task
-            }
-        }
-    }
-    
-    func testTask1() -> AsyncTask<Int, any Error> {
-        return AsyncTask<Int, any Error> { resultClosure in
-            resultClosure(.success(5))
-        }
-    }
-    
-    func testTask2() -> AsyncTask<Int, any Error> {
-        return AsyncTask<Int, any Error> { resultClosure in
-            resultClosure(.success(10))
-        }
-    }
-    
-    // error
-    func testTask3() -> AsyncTask<Int, any Error> {
-        return AsyncTask<Int, any Error> { resultClosure in
-            resultClosure(.failure(AsyncError.resultError))
-        }
-    }
 }
