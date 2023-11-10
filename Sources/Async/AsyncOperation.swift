@@ -24,60 +24,60 @@
 
 import Foundation
 
-/// `AsyncOperation` 是一个用于管理同步队列操作的类型。
-/// 内部线程为同步逻辑。
-/// 内部使用 `DispatchSemaphore` 调度队列的执行。
+/// `AsyncOperation` is a type used to manage synchronous queue operations.
+/// The internal thread is synchronous.
+/// It uses `DispatchSemaphore` to schedule the execution of the queue.
 public final class AsyncOperation: Identifiable {
     
-    /// 操作队列的名称，
+    /// The name of the operation queue.
     ///
-    /// - Note
-    /// `com.async.operation.#_id_#` 格式
+    /// - Note:
+    /// The format is `com.async.operation.#_id_#`.
     public private(set) var name: String
         
-    /// 启动一个同步线程调度线程管理
-    /// - Parameter operationClosure: 线程操作事件
-    /// - Returns: 同步线程调度
-    @discardableResult public static func task(operationClosure: @escaping (_ operation: AsyncOperation) -> Void) -> AsyncOperation {
+    /// Start a synchronous thread scheduling operation.
+    /// - Parameter operationClosure: The operation closure.
+    /// - Returns: The synchronous thread scheduling operation.
+    @discardableResult static func task(operationClosure: @escaping (_ operation: AsyncOperation) -> Void) -> AsyncOperation {
         let operation = AsyncOperation(operationClosure: operationClosure)
         operation.start()
         operation.freeAfterFinish()
         return operation
     }
 
-    /// 操作队列 `id`
-    public var id: String = UUID().uuidString
+    /// The id of the operation queue.
+    public private(set) var id: String = UUID().uuidString
     
-    /// 操作队列
-    private var operationQueue: DispatchQueue
+    /// The operation queue.
+    public private(set) var operationQueue: DispatchQueue
     
-    /// 操作任务队列
+    /// The operation closure.
     private var operationClosure: (_ operation: AsyncOperation) -> Void
     
-    /// 操作任务屏蔽队列
-    /// 可以用于在多组事件之间插入屏蔽队列，隔离多组事件操作
+    /// The barrier closure.
+    /// It can be used to insert a barrier closure between multiple groups of events to isolate the operations of multiple groups of events.
     private var barrierClosure: ((_ operation: AsyncOperation) -> Void)? = nil
     
-    /// 操作队列释放
+    /// The free closure.
     private var freeClosure: ((_ operation: AsyncOperation) -> Void)? = nil
     
-    /// 信号量
+    /// The semaphore.
     private var semaphore: DispatchSemaphore
     
-    /// 初始化操作队列对象
-    /// - Parameter operationClosure: 操作队列任务
-    private init(operationClosure: @escaping (_: AsyncOperation) -> Void) {
+    /// Initialize the operation queue object.
+    /// - Parameter operationClosure: The operation closure.
+    private init(operationClosure: @escaping (_ operation: AsyncOperation) -> Void) {
         self.name = "com.async.operation.\(id)"
-        // 用于线程调度
+        // Used for thread scheduling
         self.operationQueue = DispatchQueue(label: name, attributes: .concurrent)
-        // 用户结果回调限制
+        // Used for result callback limitation
         self.semaphore = DispatchSemaphore(value: 0)
         self.operationClosure = operationClosure
         
         asyncWaitQueues[self.name] = self
     }
     
-    /// 开始执行操作队列任务
+    /// Start executing the operation queue task.
     private func start() {
         operationQueue.async { [weak self] in
             guard let sSelf = self else { return }
@@ -85,7 +85,7 @@ public final class AsyncOperation: Identifiable {
         }
     }
     
-    /// 屏蔽分隔队列任务
+    /// Add a barrier closure to the operation queue.
     private func barrier() {
         operationQueue.async(flags: .barrier) { [weak self] in
             guard let sSelf = self else { return }
@@ -93,7 +93,7 @@ public final class AsyncOperation: Identifiable {
         }
     }
     
-    /// 释放队列任务
+    /// Free the operation queue.
     private func free() {
         operationQueue.async { [weak self] in
             guard let sSelf = self else { return }
@@ -101,7 +101,7 @@ public final class AsyncOperation: Identifiable {
         }
     }
     
-    /// 队列任务执行结束后，释放操作
+    /// Release the operation queue after the task finishes.
     private func freeAfterFinish() {
         if barrierClosure == nil {
             self.barrierClosure = { operation in
@@ -117,18 +117,33 @@ public final class AsyncOperation: Identifiable {
     }
 
     deinit {
-        print("deinit")
+        print("Async Operation: id: \(id), name: \(name) deinit")
     }
 }
 
 extension AsyncOperation {
     
-    /// 启动一个等待事件，返回限制类型
-    /// - Parameter responseClosure: 等待事件包装
-    /// - Returns: 等待事件响应结果
+    /// Start a waiting event and return a restricted type.
+    ///
+    /// ```swift
+    /// Async.Task { operation in
+    ///     operation.await<Success> { resultClosure in
+    ///
+    ///         let object = /* Perform some task and get a result */
+    ///         // The object is an instance of Success.
+    ///         resultClosure(.success(object))
+    ///
+    ///         let error = /* Perform some task and get an error */
+    ///         resultClosure(.failure(error))
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter taskClosure: The task closure.
+    /// - Returns: The result of the waiting event.
     @discardableResult
-    public func await<T>(_ taskClosure: (@escaping (Result<T, any Error>) -> Void) -> Void) -> Result<T, any Error> {
-        var result: Result<T, any Error>?
+    public func await<T>(_ taskClosure: (@escaping (Result<T, Error>) -> Void) -> Void) -> Result<T, Error> {
+        var result: Result<T, Error>?
         taskClosure { [weak self] tempResult in
             guard let sSelf = self else { return }
             result = tempResult
@@ -138,12 +153,26 @@ extension AsyncOperation {
         return result ?? .failure(AsyncError.resultError)
     }
     
-    /// 启动一个等待事件
-    /// - Parameter taskClosure: 等待事件包装
-    /// - Returns: 等待事件响应结果
+    /// Start a waiting event.
+    ///
+    /// ```swift
+    /// Async.Task { operation in
+    ///     operation.await { resultClosure in
+    ///
+    ///         let object = /* Perform some task and get a result */
+    ///         resultClosure(.success(object))
+    ///
+    ///         let error = /* Perform some task and get an error */
+    ///         resultClosure(.failure(error))
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter taskClosure: The task closure.
+    /// - Returns: The result of the waiting event.
     @discardableResult
-    public func await(_ taskClosure: (@escaping (Result<Any, any Error>) -> Void) -> Void) -> Result<Any, any Error> {
-        var result: Result<Any, any Error>?
+    public func await(_ taskClosure: (@escaping (Result<Any, Error>) -> Void) -> Void) -> Result<Any, Error> {
+        var result: Result<Any, Error>?
         taskClosure { [weak self] tempResult in
             guard let sSelf = self else { return }
             result = tempResult
@@ -152,21 +181,90 @@ extension AsyncOperation {
         semaphore.wait()
         return result ?? .failure(AsyncError.resultError)
     }
-    
-    /// 启动一个等待事件
-    /// - Parameter response: 等待事件包装
-    /// - Returns: 等待事件响应结果
+   
+    /// Start a waiting event.
+    ///
+    /// ```swift
+    /// Async.Task { operation in
+    ///
+    ///     /// func testTask() -> AsyncTask<Int, any Error> {
+    ///     ///     return AsyncTask<Int, any Error> { resultClosure in
+    ///     ///         resultClosure(.success(5))
+    ///     ///     }
+    ///     /// }
+    ///
+    ///     // Create an instance of the type that follows the AsyncTaskType protocol
+    ///     let task = testTask()
+    ///     let result = operation.await(task)
+    ///     if let value = task.value {
+    ///         print(value) // 5
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter task: The task.
+    /// - Returns: The result of the waiting event.
     @discardableResult
-    public func await<Success, Failure>(_ task: AsyncTask<Success, Failure>) -> Result<Success, Failure>? where Failure: Error {
-        return self.await(task: task)
+    public func await<T: AsyncTaskType>(_ task: T) -> Result<T.Success, T.Failure>? {
+        task.action { [weak self] in
+            guard let sSelf = self else { return }
+            sSelf.semaphore.signal()
+        }
+        semaphore.wait()
+        return task.result
     }
 
-    /// 启动多个等待事件
-    /// - Parameter tasks: 多个等待事件包装
-    /// - Returns: 等待事件响应结果
+    /// Start multiple waiting events.
+    ///
+    /// ```swift
+    /// Async.Task { operation in
+    ///
+    ///     /// func testTask1() -> AsyncTask<Int, any Error> {
+    ///     ///     return AsyncTask<Int, any Error> { resultClosure in
+    ///     ///         resultClosure(.success(5))
+    ///     ///     }
+    ///     /// }
+    ///     let task1 = self.testTask1()
+    ///
+    ///     /// func testTask2() -> AsyncTask<Int, any Error> {
+    ///     ///     return AsyncTask<Int, any Error> { resultClosure in
+    ///     ///         resultClosure(.success(10))
+    ///     ///     }
+    ///     /// }
+    ///     let task2 = self.testTask2()
+    ///
+    ///     /// // error
+    ///     /// func testTask3() -> AsyncTask<Int, any Error> {
+    ///     ///     return AsyncTask<Int, any Error> { resultClosure in
+    ///     ///         resultClosure(.failure(AsyncError.resultError))
+    ///     ///     }
+    ///     /// }
+    ///     let task3 = self.testTask3()
+    ///
+    ///     let _ = operation.await([task1, task2, task3])
+    ///
+    ///     if let value1 = task1.value {
+    ///         print(value1) // 5
+    ///     }
+    ///
+    ///     if let value2 = task2.value {
+    ///         print(value2) // 10
+    ///     }
+    ///
+    ///     if let value3 = task3.value {
+    ///         print(value3) // no print
+    ///     }
+    ///
+    ///     if let error = task3.error {
+    ///         print(error) // throw the error of task
+    ///     }
+    /// }
+    /// ```
+    /// - Parameter tasks: The tasks.
+    /// - Returns: The results of the waiting events.
     @discardableResult
-    public func await(_ tasks: [AsyncTask<Any, any Error>]) -> [Result<Any, any Error>?]? {
-        let task = AsyncTask<[Result<Any, any Error>?], any Error> { [weak self] resultClosure in
+    public func await(_ tasks: [any AsyncTaskType]) -> [Result<Any, Error>?]? {
+        let task = AsyncTask<[Result<Any, Error>?], Error> { [weak self] resultClosure in
             guard let sSelf = self else { return }
             let group = DispatchGroup()
             sSelf.operationQueue.async(group: group) {
@@ -177,37 +275,14 @@ extension AsyncOperation {
                     }
                 }
                 group.notify(queue: sSelf.operationQueue) {
-                    let results = tasks.map { $0.result }
-                    resultClosure(.success(results))
-                }
-            }
-        }
-        
-        let result = self.await(task)
-        return try? result?.get()
-    }
-    
-    @discardableResult
-    public func await(_ tasks: [any AsyncTaskType]) -> [Result<Any, any Error>?]? {
-        let task = AsyncTask<[Result<Any, any Error>?], any Error> { [weak self] resultClosure in
-            guard let sSelf = self else { return }
-            let group = DispatchGroup()
-            sSelf.operationQueue.async(group: group) {
-                tasks.forEach { task in
-                    group.enter()
-                    task.action {
-                        group.leave()
-                    }
-                }
-                group.notify(queue: sSelf.operationQueue) {
-                    var results: [Result<Any, any Error>] = []
+                    var results: [Result<Any, Error>] = []
                     tasks.forEach {
                         if let value = $0.value {
-                            results.append(Result<Any, any Error>.success(value))
+                            results.append(Result<Any, Error>.success(value))
                         } else if let error = $0.error {
-                            results.append(Result<Any, any Error>.failure(error))
+                            results.append(Result<Any, Error>.failure(error))
                         } else {
-                            results.append(Result<Any, any Error>.success(true))
+                            results.append(Result<Any, Error>.success(true))
                         }
                     }
                     resultClosure(.success(results))
@@ -219,12 +294,12 @@ extension AsyncOperation {
         return try? result?.get()
     }
     
-    /// 主线程事件操作
-    /// - Parameter closure: 主线程任务执行
-    /// - Returns: 主线程执行结果回调
+    /// Main thread event operation.
+    /// - Parameter closure: The closure to be executed on the main thread.
+    /// - Returns: The result of the main thread execution.
     @discardableResult
     public func main(_ closure: @escaping () -> Void) -> Bool {
-        let task = AsyncTask<Bool, any Error> { resultClosure in
+        let task = AsyncTask<Bool, Error> { resultClosure in
             DispatchQueue.main.async {
                 closure()
                 resultClosure(.success(true))
@@ -250,5 +325,5 @@ extension AsyncOperation {
         }
         semaphore.wait()
         return result
-    }    
+    }
 }

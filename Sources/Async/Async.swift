@@ -24,21 +24,32 @@
 
 import Foundation
 
-/// `asyncWaitQueues` 是一个全局的等待线程管理 `Dictionary` 实例。
-/// 其以 `AsyncOperation` 的 `name`  为 `key`，`AsyncOperation` 实例为 `Value` 进行存储。
-/// 其在 `AsyncOperation` 创建时进行存储操作，在 `AsyncOperation` 执行结束时，进行释放操作。
+import Foundation
+
+/// `asyncWaitQueues` is a global management `Dictionary` instance for waiting threads.
+/// It stores `AsyncOperation` instances with the `name` of the operation as the key.
+/// It performs storage operations when an `AsyncOperation` is created and release operations when an `AsyncOperation` is finished.
 internal var asyncWaitQueues = [String: AsyncOperation]()
 
-/// `Async` 用于启动一个同步线程 `AsyncOperation`，做线程调度。
+/// `Async` is used to start a synchronous thread `AsyncOperation` for thread scheduling.
+/// 
 /// - Note:
-/// 线程调度的任务需要注意：
-/// 1. 所有 `await` 的 `AsyncTask` 任务必须有结果 `Result`。`Result` 的 `Success` 标识任务执行成功结果，`Failure` 标识任务执行失败，并标识错误。
-/// 2. 必须在 `await` 之后才可以使用 `AsyncTask` 任务的 `Result` 。如果结果 `Result` 为空，则任务还没有执行（没有添加到 `await` 执行）。
+/// When scheduling tasks, please note the following:
+/// 1. All `AsyncTask` tasks with `await` must have a `Result`. The `Success` of the `Result` indicates the successful result of the task execution, and `Failure` indicates the task execution failure and the associated error.
+/// 2. The `Result` of an `AsyncTask` task can only be used after the `await`. If the `Result` is nil, it means the task has not been executed (has not been added to the `await` for execution).
 public struct Async {
     
-    /// 启动一个同步线程调度线程管理
-    /// - Parameter operationClosure: 线程操作事件
-    /// - Returns: 同步线程调度
+    /// Start a synchronous thread for thread scheduling
+    ///
+    /// ```swift
+    /// Async.Task { operation in
+    ///
+    ///     let result = operation.await(anyTask)
+    ///     
+    /// }
+    /// ```
+    /// - Parameter operationClosure: The closure for thread operations
+    /// - Returns: The synchronous thread operation
     @discardableResult
     public static func Task(operationClosure: @escaping (_ operation: AsyncOperation) -> Void) -> AsyncOperation {
         let operation = AsyncOperation.task(operationClosure: operationClosure)

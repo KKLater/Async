@@ -27,14 +27,16 @@ import XCTest
 
 final class AsyncTests: XCTestCase {
     func testAsyncOperationTasksTest() throws {
+        
         let expectation = expectation(description: "")
         let queue = DispatchQueue(label: "addNumber")
         Async.Task { operation in
             NSLog("async----开始----thread----%@", Thread.current)
             let number = 10
+            let firstTask = self.asyncAdd1Task(number: number, on: queue)
+            let firstResult = operation.await(firstTask)
             
-            let firstResult = operation.await(self.asyncAdd1Task(number: number, on: queue))
-            guard case .success(let number) = firstResult, number == 11 else { return }
+            guard let number = firstTask.value, number == 11 else { return }
             
             let secondResult = operation.await(self.asyncAdd2Task(number: number, on: queue))
             guard case .success(let number) = secondResult else { return }
